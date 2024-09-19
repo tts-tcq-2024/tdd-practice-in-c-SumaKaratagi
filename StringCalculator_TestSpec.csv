@@ -1,0 +1,11 @@
+Test Case ID,Test Name,Test Case Description,Input,Expected Output
+TC1,test_empty_string,Empty string returns 0.,"""""",0
+TC2,test_single_number,Single number returns the number itself.,"""1""",1
+TC3,test_two_numbers_sum,Two numbers return their sum.,"""1,2""",3
+TC4,test_newline_as_delimiter,Newlines are treated as delimiters.,"""1\n2,3""",6
+TC5,test_trailing_comma_and_newline,Invalid input with a trailing comma and newline.,"""1,\n""",Exception
+TC6,test_custom_delimiter_long,Long custom delimiters for summation.,"""//[***]\n1***2***3""",6
+TC7,test_negative_number_exception,Negative numbers trigger an exception.,"""1,-2""",Exception
+TC8,test_ignore_numbers_above_1000,Numbers greater than 1000 are ignored.,"""2,1001""",2
+TC9,test_custom_delimiter_ignore_above_1000,Ignores numbers greater than 1000 with custom delimiter.,"""//[***]\n1***2***1001""",3
+TC10,test_sum_valid_numbers_only,Only sums valid numbers (valid numbers are < 1000).,"""1000,1001,2000""",1000
