@@ -1,0 +1,11 @@
+Test Case ID,Input,Expected Output,Test Case Description
+TC1,"""""",0,Empty string returning 0
+TC2,"""1""",1,Single number returning the number itself.
+TC3,"""1,2""",3,Two numbers returning their sum.
+TC4,"""1\n2,3""",6,Newlines as delimiters.
+TC5,"""1,\n""",Exception,Invalid input with a trailing comma and newline
+TC6,"""//[***]\n1***2***3""",6,Long custom delimiters 
+TC7,"""1,-2""",Exception,Negative numbers triggering an exception
+TC8,"""2,1001""",2,Numbers greater than 1000 to be ignored
+TC9,"""//[***]\n1***2***1001""",3,Ignores numbers greater than 1000 with custom delimiter.
+TC10,"""1000,1001,2000""",1000,Only sums valid numbers(valid numbers being less than 1000)
