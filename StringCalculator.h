@@ -1,157 +1,88 @@
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <ctype.h>
 
-typedef int (*CheckFunction)(const char*, char*);
-typedef int (*ResultFunction)(char*);
+#define MAX_NUMBER 1000
 
-typedef struct {
-    CheckFunction checkFunction;
-    ResultFunction resultFunction;
-    int enabled;
-} StringCalculator;
-
-int CheckEmptyInput(const char* input) {
-    return (input == NULL || strcmp(input, "") == 0) ? 1 : 0;
-}
-
-int CheckForNegativeInput(const char* input) {
-    return (strstr(input, "-") != NULL);
-}
-
-void printExeptionIfNegativeNumber(char* numbers) {
-    char buffer[256] = "Negative number found:";
-    char* token = strtok(numbers, ",");
-
-    while (token != NULL) {
-        int num = atoi(token);
-        if (num < 0) {
-            char numStr[12];
-            sprintf(numStr, " %d", num);
-            strcat(buffer, numStr);
-        }
-        token = strtok(NULL, ",");
-    }
-    strcat(buffer, "\n");
-    printf("%s", buffer);
- }
-
-// Function to get the actual delimiter specified within []
-void ExtractActualDelimiter(const char* delimiter, char* actualDelimiter) {
-    size_t delimiterLength = strlen(delimiter);
-
-    if (delimiter[0] == '[' && delimiter[delimiterLength - 1] == ']') {
-        strncpy(actualDelimiter, delimiter + 1, delimiterLength - 2);
-        actualDelimiter[delimiterLength - 2] = '\0';
-    }
-    else {
-        strcpy(actualDelimiter, delimiter);
+// Helper function to replace specific characters with a replacement
+void replace_characters(char* str, const char* targets, char replacement) {
+    char* p = str;
+    while ((p = strpbrk(p, targets)) != NULL) {  // Find target characters
+        *p = replacement;  // Replace them with the given character
+        p++;
     }
 }
 
-void ReplaceDelimiterWithComma(char* input, char* output, const char* delimiter) {
-    size_t delimiterLength = strlen(delimiter);
-    char* actualDelimiter = (char*)malloc(delimiterLength + 1);
+// Function to replace newlines and delimiters with commas
+char* replace_with_commas(const char* input, const char* delimiters) {
+    char* result = strdup(input);
+    if (!result) return NULL;  // Error handling if memory allocation fails
 
-    ExtractActualDelimiter(delimiter, actualDelimiter);
-    size_t actualDelimiterLength = strlen(actualDelimiter);
+    // Replace newlines and delimiters
+    replace_characters(result, "\n", ',');
+    replace_characters(result, delimiters, ',');
 
-    while (*input) {
-        if (strncmp(input, actualDelimiter, actualDelimiterLength) == 0) {
-            *output = ',';
-            input += actualDelimiterLength;
-        }
-        else {
-            *output = *input;
-            input++;
-        }
-        output++;
-    }
-    *output = '\0';
-
-    free(actualDelimiter);
+    return result;
 }
 
-int CheckNewlineDelimiterAndReplaceWithComma(const char* input, char* modifiedInput) {
-    int foundNewline = 0;
-    strcpy(modifiedInput, input);
-    for (int i = 0; input[i] != '\0'; i++) {
-        if (input[i] == '\n') {
-            foundNewline = 1;
-            ReplaceDelimiterWithComma((char*)input, modifiedInput, "\n");
-            break;
-        }
-    }
-    return foundNewline;
-}
-
-int CheckForCustomDelimiterAndReplaceWithComma(const char* input, char* modifiedInput) {
+// Helper function to extract custom delimiters or use default ones
+static const char* extract_custom_delimiter(const char* input, char* delimiters) {
     if (input[0] == '/' && input[1] == '/') {
-        const char* delimiterEnd = strstr(input, "\n"); 
-        size_t delimiterLength = delimiterEnd - input - 2;
-        char* delimiter = (char*)malloc(delimiterLength + 1);
-        strncpy(delimiter, input + 2, delimiterLength);
-        delimiter[delimiterLength] = '\0';
-        strcpy(modifiedInput, delimiterEnd + 1);
-        ReplaceDelimiterWithComma(modifiedInput, modifiedInput, delimiter);
-        free(delimiter);
-        return 1;        
+        delimiters[0] = input[2];  // Custom delimiter after "//"
+        delimiters[1] = '\n';      // Delimiter includes newline
+        delimiters[2] = '\0';      // Null-terminate
+        return strchr(input, '\n') + 1; // Return the string after the newline
     }
-    strcpy(modifiedInput, input);   
-    return 0;
+    strcpy(delimiters, ",\n");     // Default delimiters: comma and newline
+    return input;                  // Return the original string if no custom delimiter
 }
 
-int IgnoreNumbersGreaterThan1000(int num) {
-    return num <= 1000 ? num : 0;
+// Function to replace delimiters and newlines with commas
+char* find_delimiter(const char* input) {
+    char delimiters[3];            // Delimiters (can hold custom or default)
+    const char* numbers_str = extract_custom_delimiter(input, delimiters); 
+    char* updated_input = replace_with_commas(numbers_str, delimiters); 
+    return updated_input;
 }
 
-int SumNumbers(const char* numbers) {
-    int sum = 0;
-    char* numbersCopy = strdup(numbers);
-    char* token = strtok(numbersCopy, ",");
-
-    while (token != NULL) {
-        int num = atoi(token);
-        sum += IgnoreNumbersGreaterThan1000(num);
+// Helper function to check for negative numbers
+void find_negatives(const char* updated_input) {
+    char* input_copy = strdup(updated_input);
+    char* token = strtok(input_copy, ",");
+    while (token) {
+        if (atoi(token) < 0) {
+            free(input_copy);
+            fprintf(stderr, "Error: Negatives not allowed\n");
+            exit(EXIT_FAILURE);
+        }
         token = strtok(NULL, ",");
     }
+    free(input_copy);
+}
 
-    free(numbersCopy);
+// Helper function to calculate the sum of numbers
+int find_sum(const char* updated_input) {
+    char* input_copy = strdup(updated_input);
+    char* token = strtok(input_copy, ",");
+    int sum = 0;
+    while (token) {
+        int number = atoi(token);
+        sum += (number <= MAX_NUMBER) ? number : 0;
+        token = strtok(NULL, ",");
+    }
+    free(input_copy);
     return sum;
 }
 
-int ReturnZeroForEmptyInput(const char* numbers) {
-    return 0;
-}
-
-//Executes this function when delimeter present in input is default , 
-void ReturnSumIfDefaultDelimeter(const char* numbers, int *ReturnValue) {
-    if (*ReturnValue == 0) {
-        *ReturnValue = SumNumbers(numbers);
+// Main add function
+int add(const char* input) {
+    if (input == NULL || strlen(input) == 0) {
+        return 0;
     }
-}
-
-int add(const char* numbers) {
-    int ReturnValue = 0;
-    char* modifiedNumbers = (char*)malloc(strlen(numbers) + 1);
-
-    StringCalculator StringCalculatorVar[] = {
-    { (CheckFunction)CheckEmptyInput, (ResultFunction)ReturnZeroForEmptyInput, 0 },
-    { (CheckFunction)CheckForCustomDelimiterAndReplaceWithComma, (ResultFunction)SumNumbers, 0 },
-    { (CheckFunction)CheckNewlineDelimiterAndReplaceWithComma, (ResultFunction)SumNumbers, 0 },
-    { (CheckFunction)CheckForNegativeInput, (ResultFunction)printExeptionIfNegativeNumber, 0 }
-    };
-
-    for (int i = 0; i < 4; i++) {
-        StringCalculatorVar[i].enabled = StringCalculatorVar[i].checkFunction(numbers, modifiedNumbers);
-        if (StringCalculatorVar[i].enabled) {
-            ReturnValue = StringCalculatorVar[i].resultFunction(modifiedNumbers);
-            break;
-        }
-    }
-    ReturnSumIfDefaultDelimeter(numbers, &ReturnValue);    
-
-    free(modifiedNumbers);
-    return ReturnValue;
+    char* updated_input = find_delimiter(input);
+    find_negatives(updated_input);
+    int sum = find_sum(updated_input);
+    free(updated_input);
+    return sum;
 }
